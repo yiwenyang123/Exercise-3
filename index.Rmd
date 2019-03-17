@@ -1,0 +1,104 @@
+<center><img src="http://i.imgur.com/sSaOozN.png" width="500"></center>
+
+## 599 Exercise Three - Multivariate Case
+
+### Yiwen Yang
+
+___________________________
+
+<a id='part1'></a>
+
+Exercises: <br>
+
+- [Exercise 1](#ex1)
+- [Exercise 2](#ex2)
+
+___________________________
+
+<a id='ex1'></a>
+<span style="color:red"> Exercise 1:<br> Improve one descriptive plot.
+</span>
+
+```{r, fig.width=30, fig.height=25, echo=FALSE}
+library(openxlsx)
+link2="https://github.com/EvansDataScience/data/raw/master/safeCitiesIndex.xlsx"
+
+library(reshape2)
+
+safe2=read.xlsx(link2)
+
+safe2A=melt(safe2,id.vars = 'city')
+
+titleText1="Exercise 1: Cities' Safety Levels According to Digital, Health, Infrastructure, and Personal"
+sourceText="Source: The Economist Intelligence Unit sponsored by NEC"
+
+library(ggplot2)
+base  = ggplot(safe2A, aes(x = variable, y = value, group = city))
+
+plot1 = base + geom_polygon(fill = 'gray30',col='orange') + coord_polar()
+
+plot2 = plot1 + facet_wrap(~reorder(city,value, median, order=TRUE),ncol = 10)
+
+plot3 = plot2 + theme(axis.text.x = element_text(size = 20),
+                legend.position="none",
+                strip.text = element_text(size = 23))
+
+brdBkgnGrid=element_rect(fill = "white",colour = "red",
+             size = 3,linetype = "dashed")
+
+lineGrid=element_line(size = 3,linetype = 'solid',colour = "blue")
+
+plot3+ theme(panel.background = brdBkgnGrid,
+             panel.grid.major = lineGrid,
+             plot.caption = element_text(size=40,hjust = 0.5),
+             plot.title = element_text(size=40,hjust = 0.5)) + labs(title=titleText1,caption = sourceText)
+
+```
+
+<a id='ex2'></a>
+<span style="color:red"> Exercise 2:<br> Improve one inferential plot.
+</span>
+
+<br>
+
+```{r, echo=FALSE,include=FALSE}
+model1 = lm(PERSONAL~HEALTH+INFRASTRUCTURE,data=safe2[,-1])
+
+library(dotwhisker)
+library(broom)
+library(dplyr)
+
+model1_t = tidy(model1) %>% mutate(model = "Model 1") 
+
+model2=lm(PERSONAL~.,data=safe2[,-1]) 
+
+model2_t <- tidy(model2) %>% mutate(model = "Model 2")
+
+cut=median(safe2$PERSONAL)
+
+safe2$PERSONAL_bi=ifelse(safe2$PERSONAL>cut,
+                         1,0)
+
+logit_PERSONAL = glm(PERSONAL_bi~ .,
+                          data = safe2[,-c(1,5)],
+                          family = "binomial")
+
+library(margins)
+margins_logit_PERSONAL = margins(logit_PERSONAL) 
+
+marginalSummary=summary(margins_logit_PERSONAL)
+
+digi=cplot(logit_PERSONAL,"DIGITAL",draw = F)
+```
+
+```{r, echo=FALSE}
+base = ggplot(digi, aes(x = xvals)) 
+p1= base + geom_ribbon(aes(ymin = lower, ymax = upper), 
+                       fill = "grey90")
+p2 = p1 + geom_line(aes(y = yvals)) 
+p3= p2 + labs(title="Exercise 2: Effect of Digital Index on Personal Index",
+              caption = sourceText,
+              x= "Digital", y="Predicted Value")
+p3 + theme(plot.caption = element_text(size=15,hjust = 0.5),
+             plot.title = element_text(size=15,hjust = 0.5))+theme_minimal()
+```
